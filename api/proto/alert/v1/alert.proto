@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package alert.v1;
+
+option go_package = "github.com/cagitic1-source/alert-dispatcher/gen/alert/v1;alertv1";
+
+service AlertService {
+  rpc CreateAlert (CreateAlertRequest) returns (AlertResponse);
+  rpc GetAlert (GetAlertRequest) returns (AlertResponse);
+}
+
+enum AlertSeverity {
+    ALERT_SEVERITY_UNSPECIFIED = 0;
+    ALERT_SEVERITY_LOW         = 1;
+    ALERT_SEVERITY_MEDIUM      = 2;
+    ALERT_SEVERITY_HIGH        = 3;
+    ALERT_SEVERITY_CRITICAL    = 4;
+}
+
+enum AlertStatus {
+    ALERT_STATUS_UNSPECIFIED = 0;
+    ALERT_STATUS_PENDING     = 1;
+    ALERT_STATUS_PROCESSING  = 2;
+    ALERT_STATUS_DELIVERED   = 3;
+    ALERT_STATUS_FAILED      = 4;
+    ALERT_STATUS_CANCELLED   = 5;
+}
+
+message CreateAlertRequest {
+  string message = 1;
+  AlertSeverity severity = 2;
+  string   idempotency_key = 3;
+}
+
+message GetAlertRequest {
+  string id = 1;
+}
+
+message AlertResponse {
+  string id = 1;
+  string message = 2;
+  AlertSeverity severity = 3;
+  AlertStatus status = 4;
+  int32       attempts   = 5;
+  int64       created_at = 6;
+}

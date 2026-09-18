@@ -1,0 +1,88 @@
+package worker
+
+import (
+	"context"
+	"time"
+
+	"github.com/cagitic1-source/alert-dispatcher/internal/alertstream"
+	"github.com/cagitic1-source/alert-dispatcher/internal/domain"
+	"github.com/redis/go-redis/v9"
+)
+
+type Worker struct {
+	rdb      RedisStreamClient
+	repo     AlertRepository
+	deliver  func(alert domain.Alert) error
+	stream   string
+	group    string
+	consumer string
+}
+
+const (
+	maxAttempts   = 3
+	trimMaxAge    = 24 * time.Hour
+	claimMinIdle  = 30 * time.Second
+	claimInterval = 10 * time.Second
+)
+
+func NewWorker(rdb RedisStreamClient, repo AlertRepository, consumer string) *Worker {
+	return &Worker{
+		rdb:      rdb,
+		repo:     repo,
+		deliver:  defaultDeliver,
+		stream:   alertstream.Pending,
+		group:    alertstream.Workers,
+		consumer: consumer,
+	}
+}
+
+func defaultDeliver(alert domain.Alert) error {
+	return nil // пока нет реального внешнего сервиса — считаем успехом
+}
+
+type AlertRepository interface {
+	GetAlert(ctx context.Context, id string) (domain.Alert, error)
+	UpdateStatus(ctx context.Context, id string, status domain.AlertStatus) error
+	IncrementAttempts(ctx context.Context, id string) (int64, error)
+}
+
+type RedisStreamClient interface {
+	XAck(ctx context.Context, stream, group string, ids ...string) error
+	XAdd(ctx context.Context, a *redis.XAddArgs) error
+	XReadGroup(ctx context.Context, a *redis.XReadGroupArgs) ([]redis.XStream, error)
+	XGroupCreateMkStream(ctx context.Context, stream, group, start string) error
+	XAutoClaim(ctx context.Context, a *redis.XAutoClaimArgs) ([]redis.XMessage, error)
+	XTrim(ctx context.Context, stream string, minID string) error
+}
+
+// NewRedisStreamClient оборачивает клиент go-redis в RedisStreamClient.
+func NewRedisStreamClient(rdb *redis.Client) RedisStreamClient {
+	return &redisAdapter{rdb: rdb}
+}
+
+type redisAdapter struct{ rdb *redis.Client }
+
+func (a *redisAdapter) XAck(ctx context.Context, stream, group string, ids ...string) error {
+	return a.rdb.XAck(ctx, stream, group, ids...).Err()
+}
+
+func (a *redisAdapter) XAdd(ctx context.Context, args *redis.XAddArgs) error {
+	return a.rdb.XAdd(ctx, args).Err()
+}
+
+func (a *redisAdapter) XReadGroup(ctx context.Context, args *redis.XReadGroupArgs) ([]redis.XStream, error) {
+	return a.rdb.XReadGroup(ctx, args).Result()
+}
+
+func (a *redisAdapter) XGroupCreateMkStream(ctx context.Context, stream, group, start string) error {
+	return a.rdb.XGroupCreateMkStream(ctx, stream, group, start).Err()
+}
+
+func (a *redisAdapter) XTrim(ctx context.Context, stream, minID string) error {
+	return a.rdb.XTrimMinID(ctx, stream, minID).Err()
+}
+
+func (a *redisAdapter) XAutoClaim(ctx context.Context, args *redis.XAutoClaimArgs) ([]redis.XMessage, error) {
+	messages, _, err := a.rdb.XAutoClaim(ctx, args).Result()
+	return messages, err
+}
