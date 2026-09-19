@@ -9,8 +9,8 @@ import (
 var _ RedisStreamClient = &fakeRedis{}
 
 type fakeRedis struct {
-	acked []string          // сюда складывай msg.ID из XAck
-	added []*redis.XAddArgs // сюда — аргументы XAdd
+	acked []string
+	added []*redis.XAddArgs
 }
 
 func (f *fakeRedis) XAck(ctx context.Context, stream, group string, ids ...string) error {

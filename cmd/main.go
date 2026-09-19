@@ -40,7 +40,7 @@ func main() {
 		log.Fatalf("redis unavailable: %v", err)
 	}
 
-	w := worker.NewWorker(worker.NewRedisStreamClient(rdb), repo, "worker-1")
+	w := worker.NewWorker(worker.NewRedisStreamClient(rdb), repo, worker.NewDeadLetterStore(rdb), "worker-1")
 	if err := w.EnsureGroup(ctx); err != nil {
 		log.Fatalf("ensure group: %v", err)
 	}

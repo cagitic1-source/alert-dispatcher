@@ -10,6 +10,8 @@ import (
 )
 
 type Worker struct {
+	retry    RetryQueue
+	dlq      DeadLetterStore
 	rdb      RedisStreamClient
 	repo     AlertRepository
 	deliver  func(alert domain.Alert) error
@@ -20,14 +22,17 @@ type Worker struct {
 
 const (
 	maxAttempts   = 3
+	markerTTL     = 24 * time.Hour
 	trimMaxAge    = 24 * time.Hour
+	trimInterval  = time.Minute
 	claimMinIdle  = 30 * time.Second
 	claimInterval = 10 * time.Second
 )
 
-func NewWorker(rdb RedisStreamClient, repo AlertRepository, consumer string) *Worker {
+func NewWorker(rdb RedisStreamClient, repo AlertRepository, dlq DeadLetterStore, consumer string) *Worker {
 	return &Worker{
 		rdb:      rdb,
+		dlq:      dlq,
 		repo:     repo,
 		deliver:  defaultDeliver,
 		stream:   alertstream.Pending,
@@ -37,7 +42,17 @@ func NewWorker(rdb RedisStreamClient, repo AlertRepository, consumer string) *Wo
 }
 
 func defaultDeliver(alert domain.Alert) error {
-	return nil // пока нет реального внешнего сервиса — считаем успехом
+	return nil
+}
+
+type DeadLetterStore interface {
+	SendOnce(ctx context.Context, alertID string, reason string) (bool, error)
+}
+
+type RetryQueue interface {
+	ScheduleRetry(ctx context.Context, alertID string, at time.Time) error
+	DueRetries(ctx context.Context, now time.Time, limit int64) ([]string, error)
+	RemoveRetry(ctx context.Context, alertID string) error
 }
 
 type AlertRepository interface {

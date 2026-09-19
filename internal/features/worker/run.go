@@ -12,6 +12,7 @@ import (
 
 func (w *Worker) Run(ctx context.Context) error {
 	lastClaim := time.Now()
+	lastTrim := time.Now()
 	for {
 		select {
 		case <-ctx.Done():
@@ -23,7 +24,12 @@ func (w *Worker) Run(ctx context.Context) error {
 				}
 				lastClaim = time.Now()
 			}
-
+			if time.Since(lastTrim) >= trimInterval {
+				if err := w.trimStream(ctx); err != nil {
+					log.Printf("trim stream: %v", err)
+				}
+				lastTrim = time.Now()
+			}
 			results, err := w.rdb.XReadGroup(ctx, &redis.XReadGroupArgs{
 				Group:    w.group,
 				Consumer: w.consumer,

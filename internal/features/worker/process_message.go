@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/cagitic1-source/alert-dispatcher/internal/alertstream"
 	"github.com/cagitic1-source/alert-dispatcher/internal/domain"
 	"github.com/redis/go-redis/v9"
 )
@@ -35,21 +34,16 @@ func (w *Worker) processMessage(ctx context.Context, msg redis.XMessage) error {
 		return fmt.Errorf("get alert: %w", err)
 	}
 
-	if err := w.deliver(alert); err != nil {
+	if deliverErr := w.deliver(alert); deliverErr != nil {
 		attempts, incErr := w.repo.IncrementAttempts(ctx, alertID)
 		if incErr != nil {
 			return fmt.Errorf("increment attempts: %w", incErr)
 		}
 
 		if attempts >= maxAttempts {
-			if err := w.rdb.XAdd(ctx, &redis.XAddArgs{
-				Stream: alertstream.Dead,
-				Values: map[string]any{
-					"alert_id": alertID,
-					"reason":   err.Error(),
-				},
-			}); err != nil {
-				return fmt.Errorf("xadd dead: %w", err)
+			_, err := w.dlq.SendOnce(ctx, alertID, deliverErr.Error())
+			if err != nil {
+				return fmt.Errorf("mark dlq sent: %w", err)
 			}
 
 			if err := w.repo.UpdateStatus(ctx, alertID, domain.StatusFailed); err != nil {
