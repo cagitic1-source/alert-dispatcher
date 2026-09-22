@@ -35,7 +35,10 @@ func (w *Worker) processMessage(ctx context.Context, msg redis.XMessage) error {
 		return fmt.Errorf("get alert: %w", err)
 	}
 
-	if deliverErr := w.deliver(alert); deliverErr != nil {
+	deliverCtx, cancel := context.WithTimeout(ctx, deliverTimeout)
+	deliverErr := w.deliver(deliverCtx, alert)
+	cancel()
+	if deliverErr != nil {
 		attempts, incErr := w.repo.IncrementAttempts(ctx, alertID)
 		if incErr != nil {
 			return fmt.Errorf("increment attempts: %w", incErr)

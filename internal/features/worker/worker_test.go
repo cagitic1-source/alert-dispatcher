@@ -11,6 +11,14 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+func TestDeliverTimeoutShorterThanClaimMinIdle(t *testing.T) {
+	if deliverTimeout >= claimMinIdle {
+		t.Fatalf("deliverTimeout (%v) >= claimMinIdle (%v): зависшая доставка "+
+			"будет перехвачена claimStale и алерт доставится дважды",
+			deliverTimeout, claimMinIdle)
+	}
+}
+
 func TestRequeueDue(t *testing.T) {
 	rdb := &fakeRedis{}
 	retry := &fakeRetry{due: []string{"alert-123"}}
@@ -72,7 +80,7 @@ func TestProcessMessage_RetryScheduled(t *testing.T) {
 	}
 
 	w := NewWorker(repo, rdb, dlq, retry, "test")
-	w.deliver = func(alert domain.Alert) error {
+	w.deliver = func(_ context.Context, _ domain.Alert) error {
 		return errors.New("boom")
 	}
 
@@ -156,7 +164,7 @@ func TestProcessMessage_DLQPath(t *testing.T) {
 
 	w := NewWorker(repo, rdb, dlq, retry, "test")
 
-	w.deliver = func(alert domain.Alert) error {
+	w.deliver = func(_ context.Context, _ domain.Alert) error {
 		return errors.New("boom")
 	}
 
@@ -227,7 +235,7 @@ func TestProcessMessage_DLQAlreadySent(t *testing.T) {
 	}
 
 	w := NewWorker(repo, rdb, dlq, retry, "test")
-	w.deliver = func(alert domain.Alert) error {
+	w.deliver = func(_ context.Context, _ domain.Alert) error {
 		return errors.New("boom")
 	}
 

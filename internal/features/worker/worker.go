@@ -15,7 +15,7 @@ type Worker struct {
 	repo     AlertRepository
 	dlq      DeadLetterStore
 	retry    RetryQueue
-	deliver  func(alert domain.Alert) error
+	deliver  func(ctx context.Context, alert domain.Alert) error
 	stream   string
 	group    string
 	consumer string
@@ -29,6 +29,7 @@ const (
 	markerTTL         = 24 * time.Hour
 	trimMaxAge        = 24 * time.Hour
 	trimInterval      = time.Minute
+	deliverTimeout    = 30 * time.Second
 	claimMinIdle      = 2 * time.Minute
 	claimInterval     = 10 * time.Second
 )
@@ -46,7 +47,7 @@ func NewWorker(repo AlertRepository, rdb RedisStreamClient, dlq DeadLetterStore,
 	}
 }
 
-func defaultDeliver(alert domain.Alert) error {
+func defaultDeliver(_ context.Context, _ domain.Alert) error {
 	return nil
 }
 
