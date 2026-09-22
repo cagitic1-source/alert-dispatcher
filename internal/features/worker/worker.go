@@ -21,13 +21,15 @@ type Worker struct {
 }
 
 const (
-	baseRetryDelay = 30 * time.Second
-	maxAttempts    = 3
-	markerTTL      = 24 * time.Hour
-	trimMaxAge     = 24 * time.Hour
-	trimInterval   = time.Minute
-	claimMinIdle   = 30 * time.Second
-	claimInterval  = 10 * time.Second
+	retryScanInterval = 5 * time.Second
+	retryBatchSize    = 10
+	baseRetryDelay    = 30 * time.Second
+	maxAttempts       = 3
+	markerTTL         = 24 * time.Hour
+	trimMaxAge        = 24 * time.Hour
+	trimInterval      = time.Minute
+	claimMinIdle      = 30 * time.Second
+	claimInterval     = 10 * time.Second
 )
 
 func NewWorker(repo AlertRepository, rdb RedisStreamClient, dlq DeadLetterStore, retry RetryQueue, consumer string) *Worker {

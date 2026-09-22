@@ -6,9 +6,56 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cagitic1-source/alert-dispatcher/internal/alertstream"
 	"github.com/cagitic1-source/alert-dispatcher/internal/domain"
 	"github.com/redis/go-redis/v9"
 )
+
+func TestRequeueDue(t *testing.T) {
+	rdb := &fakeRedis{}
+	retry := &fakeRetry{due: []string{"alert-123"}}
+	w := NewWorker(&fakeRepo{}, rdb, &fakeDLQ{}, retry, "test")
+
+	err := w.requeueDue(context.Background())
+	if err != nil {
+		t.Fatalf("requeueDue: %v", err)
+	}
+
+	if len(rdb.added) != 1 {
+		t.Fatalf("added = %v, хотел одно сообщение", rdb.added)
+	}
+	if rdb.added[0].Stream != alertstream.Pending {
+		t.Errorf("stream = %q, хотел %q", rdb.added[0].Stream, alertstream.Pending)
+	}
+	values, ok := rdb.added[0].Values.(map[string]any)
+	if !ok {
+		t.Fatalf("Values имеет неожиданный тип %T", rdb.added[0].Values)
+	}
+	if values["alert_id"] != "alert-123" {
+		t.Errorf("alert_id = %v, хотел alert-123", values["alert_id"])
+	}
+
+	if len(retry.removed) != 1 || retry.removed[0] != "alert-123" {
+		t.Errorf("removed = %v, хотел [alert-123]", retry.removed)
+	}
+}
+
+func TestRequeueDue_Empty(t *testing.T) {
+	rdb := &fakeRedis{}
+	retry := &fakeRetry{}
+	w := NewWorker(&fakeRepo{}, rdb, &fakeDLQ{}, retry, "test")
+
+	if err := w.requeueDue(context.Background()); err != nil {
+		t.Fatalf("requeueDue: %v", err)
+	}
+
+	if len(rdb.added) != 0 {
+		t.Errorf("added = %v, хотел пусто", rdb.added)
+	}
+	if len(retry.removed) != 0 {
+		t.Errorf("removed = %v, хотел пусто", retry.removed)
+	}
+}
 
 func TestProcessMessage_RetryScheduled(t *testing.T) {
 	rdb := &fakeRedis{}

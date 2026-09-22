@@ -13,6 +13,8 @@ import (
 func (w *Worker) Run(ctx context.Context) error {
 	lastClaim := time.Now()
 	lastTrim := time.Now()
+	lastRetryScan := time.Now()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -29,6 +31,12 @@ func (w *Worker) Run(ctx context.Context) error {
 					log.Printf("trim stream: %v", err)
 				}
 				lastTrim = time.Now()
+			}
+			if time.Since(lastRetryScan) >= retryScanInterval {
+				if err := w.requeueDue(ctx); err != nil {
+					log.Printf("requeue due: %v", err)
+				}
+				lastRetryScan = time.Now()
 			}
 			results, err := w.rdb.XReadGroup(ctx, &redis.XReadGroupArgs{
 				Group:    w.group,
