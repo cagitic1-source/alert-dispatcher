@@ -2,7 +2,6 @@ package worker
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -46,9 +45,6 @@ func (w *Worker) Run(ctx context.Context) error {
 				Block:    5 * time.Second,
 			})
 
-			if errors.Is(err, redis.Nil) {
-				continue
-			}
 			if err != nil {
 				return fmt.Errorf("xreadgroup: %w", err)
 			}

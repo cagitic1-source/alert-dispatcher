@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/cagitic1-source/alert-dispatcher/internal/alertstream"
@@ -90,7 +91,11 @@ func (a *redisAdapter) XAdd(ctx context.Context, args *redis.XAddArgs) error {
 }
 
 func (a *redisAdapter) XReadGroup(ctx context.Context, args *redis.XReadGroupArgs) ([]redis.XStream, error) {
-	return a.rdb.XReadGroup(ctx, args).Result()
+	res, err := a.rdb.XReadGroup(ctx, args).Result()
+	if errors.Is(err, redis.Nil) {
+		return nil, nil
+	}
+	return res, err
 }
 
 func (a *redisAdapter) XGroupCreateMkStream(ctx context.Context, stream, group, start string) error {

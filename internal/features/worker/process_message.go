@@ -42,9 +42,9 @@ func (w *Worker) processMessage(ctx context.Context, msg redis.XMessage) error {
 		}
 
 		if attempts >= maxAttempts {
-			_, err := w.dlq.SendOnce(ctx, alertID, deliverErr.Error())
-			if err != nil {
-				return fmt.Errorf("mark dlq sent: %w", err)
+			sent, dlqErr := w.dlq.SendOnce(ctx, alertID, deliverErr.Error())
+			if dlqErr != nil {
+				return fmt.Errorf("send to dlq: %w", dlqErr)
 			}
 
 			if err := w.repo.UpdateStatus(ctx, alertID, domain.StatusFailed); err != nil {
@@ -55,7 +55,11 @@ func (w *Worker) processMessage(ctx context.Context, msg redis.XMessage) error {
 				return fmt.Errorf("xack: %w", err)
 			}
 
-			log.Printf("alert %s moved to DLQ after %d attempts", alertID, attempts)
+			if sent {
+				log.Printf("alert %s moved to DLQ after %d attempts", alertID, attempts)
+			} else {
+				log.Printf("alert %s already in DLQ, finishing status and ack", alertID)
+			}
 			return nil
 		}
 
