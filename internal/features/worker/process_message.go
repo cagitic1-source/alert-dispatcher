@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/cagitic1-source/alert-dispatcher/internal/domain"
 	"github.com/redis/go-redis/v9"
@@ -58,8 +59,18 @@ func (w *Worker) processMessage(ctx context.Context, msg redis.XMessage) error {
 			return nil
 		}
 
-		log.Printf("alert %s delivery failed (attempt %d/%d), will retry: %v",
-			alertID, attempts, maxAttempts, err)
+		delay := baseRetryDelay * time.Duration(1<<(attempts-1))
+
+		if err := w.retry.ScheduleRetry(ctx, alertID, time.Now().Add(delay)); err != nil {
+			return fmt.Errorf("schedule retry: %w", err)
+		}
+		if err := w.rdb.XAck(ctx, w.stream, w.group, msg.ID); err != nil {
+			return fmt.Errorf("xack: %w", err)
+		}
+
+		log.Printf("alert %s delivery failed (attempt %d/%d), retry in %s: %v",
+			alertID, attempts, maxAttempts, delay, deliverErr)
+
 		return nil
 	}
 

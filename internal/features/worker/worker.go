@@ -10,10 +10,10 @@ import (
 )
 
 type Worker struct {
-	retry    RetryQueue
-	dlq      DeadLetterStore
 	rdb      RedisStreamClient
 	repo     AlertRepository
+	dlq      DeadLetterStore
+	retry    RetryQueue
 	deliver  func(alert domain.Alert) error
 	stream   string
 	group    string
@@ -21,19 +21,21 @@ type Worker struct {
 }
 
 const (
-	maxAttempts   = 3
-	markerTTL     = 24 * time.Hour
-	trimMaxAge    = 24 * time.Hour
-	trimInterval  = time.Minute
-	claimMinIdle  = 30 * time.Second
-	claimInterval = 10 * time.Second
+	baseRetryDelay = 30 * time.Second
+	maxAttempts    = 3
+	markerTTL      = 24 * time.Hour
+	trimMaxAge     = 24 * time.Hour
+	trimInterval   = time.Minute
+	claimMinIdle   = 30 * time.Second
+	claimInterval  = 10 * time.Second
 )
 
-func NewWorker(rdb RedisStreamClient, repo AlertRepository, dlq DeadLetterStore, consumer string) *Worker {
+func NewWorker(repo AlertRepository, rdb RedisStreamClient, dlq DeadLetterStore, retry RetryQueue, consumer string) *Worker {
 	return &Worker{
 		rdb:      rdb,
-		dlq:      dlq,
 		repo:     repo,
+		retry:    retry,
+		dlq:      dlq,
 		deliver:  defaultDeliver,
 		stream:   alertstream.Pending,
 		group:    alertstream.Workers,
