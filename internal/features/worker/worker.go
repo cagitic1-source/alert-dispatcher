@@ -28,7 +28,7 @@ const (
 	markerTTL         = 24 * time.Hour
 	trimMaxAge        = 24 * time.Hour
 	trimInterval      = time.Minute
-	claimMinIdle      = 30 * time.Second
+	claimMinIdle      = 2 * time.Minute
 	claimInterval     = 10 * time.Second
 )
 
