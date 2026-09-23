@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	AlertService_CreateAlert_FullMethodName = "/alert.v1.AlertService/CreateAlert"
 	AlertService_GetAlert_FullMethodName    = "/alert.v1.AlertService/GetAlert"
+	AlertService_WatchAlert_FullMethodName  = "/alert.v1.AlertService/WatchAlert"
 )
 
 // AlertServiceClient is the client API for AlertService service.
@@ -29,6 +30,7 @@ const (
 type AlertServiceClient interface {
 	CreateAlert(ctx context.Context, in *CreateAlertRequest, opts ...grpc.CallOption) (*AlertResponse, error)
 	GetAlert(ctx context.Context, in *GetAlertRequest, opts ...grpc.CallOption) (*AlertResponse, error)
+	WatchAlert(ctx context.Context, in *WatchAlertRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AlertResponse], error)
 }
 
 type alertServiceClient struct {
@@ -59,12 +61,32 @@ func (c *alertServiceClient) GetAlert(ctx context.Context, in *GetAlertRequest, 
 	return out, nil
 }
 
+func (c *alertServiceClient) WatchAlert(ctx context.Context, in *WatchAlertRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AlertResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &AlertService_ServiceDesc.Streams[0], AlertService_WatchAlert_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[WatchAlertRequest, AlertResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AlertService_WatchAlertClient = grpc.ServerStreamingClient[AlertResponse]
+
 // AlertServiceServer is the server API for AlertService service.
 // All implementations must embed UnimplementedAlertServiceServer
 // for forward compatibility.
 type AlertServiceServer interface {
 	CreateAlert(context.Context, *CreateAlertRequest) (*AlertResponse, error)
 	GetAlert(context.Context, *GetAlertRequest) (*AlertResponse, error)
+	WatchAlert(*WatchAlertRequest, grpc.ServerStreamingServer[AlertResponse]) error
 	mustEmbedUnimplementedAlertServiceServer()
 }
 
@@ -80,6 +102,9 @@ func (UnimplementedAlertServiceServer) CreateAlert(context.Context, *CreateAlert
 }
 func (UnimplementedAlertServiceServer) GetAlert(context.Context, *GetAlertRequest) (*AlertResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAlert not implemented")
+}
+func (UnimplementedAlertServiceServer) WatchAlert(*WatchAlertRequest, grpc.ServerStreamingServer[AlertResponse]) error {
+	return status.Error(codes.Unimplemented, "method WatchAlert not implemented")
 }
 func (UnimplementedAlertServiceServer) mustEmbedUnimplementedAlertServiceServer() {}
 func (UnimplementedAlertServiceServer) testEmbeddedByValue()                      {}
@@ -138,6 +163,17 @@ func _AlertService_GetAlert_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AlertService_WatchAlert_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WatchAlertRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(AlertServiceServer).WatchAlert(m, &grpc.GenericServerStream[WatchAlertRequest, AlertResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AlertService_WatchAlertServer = grpc.ServerStreamingServer[AlertResponse]
+
 // AlertService_ServiceDesc is the grpc.ServiceDesc for AlertService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -154,6 +190,12 @@ var AlertService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AlertService_GetAlert_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "WatchAlert",
+			Handler:       _AlertService_WatchAlert_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "api/proto/alert/v1/alert.proto",
 }

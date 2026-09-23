@@ -7,6 +7,7 @@ option go_package = "github.com/cagitic1-source/alert-dispatcher/gen/alert/v1;al
 service AlertService {
   rpc CreateAlert (CreateAlertRequest) returns (AlertResponse);
   rpc GetAlert (GetAlertRequest) returns (AlertResponse);
+  rpc WatchAlert (WatchAlertRequest) returns (stream AlertResponse);
 }
 
 enum AlertSeverity {
@@ -43,4 +44,8 @@ message AlertResponse {
   AlertStatus status = 4;
   int32       attempts   = 5;
   int64       created_at = 6;
+}
+
+message WatchAlertRequest {
+  string id = 1;
 }
