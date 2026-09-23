@@ -39,7 +39,7 @@ func TestRepository_CreateAndGet(t *testing.T) {
 		CreatedAt: time.Now().Unix(),
 	}
 
-	if err := repo.CreateAlert(context.Background(), alert); err != nil {
+	if _, err := repo.CreateAlertIdempotent(context.Background(), alert, "test-idem-1"); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 

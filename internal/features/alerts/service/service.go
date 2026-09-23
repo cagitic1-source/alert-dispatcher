@@ -7,7 +7,6 @@ import (
 )
 
 type AlertRepository interface {
-	CreateAlert(ctx context.Context, a domain.Alert) error
 	CreateAlertIdempotent(ctx context.Context, a domain.Alert, idemKey string) (domain.Alert, error)
 	GetAlert(ctx context.Context, id string) (domain.Alert, error)
 }

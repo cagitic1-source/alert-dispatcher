@@ -3,7 +3,6 @@ package redis_repo
 import (
 	"context"
 	_ "embed"
-	"time"
 
 	"github.com/cagitic1-source/alert-dispatcher/internal/alertstream"
 	"github.com/cagitic1-source/alert-dispatcher/internal/domain"
@@ -20,18 +19,16 @@ func (r *AlertRepository) CreateAlertIdempotent(
 	a domain.Alert,
 	idemKey string,
 ) (domain.Alert, error) {
-	idemTTL := int(time.Hour.Seconds())
-	alertTTL := int(24 * time.Hour.Seconds())
 
 	keys := []string{
 		"idempotency:" + idemKey,
-		"alert:" + a.ID,
+		alertKey(a.ID),
 		alertstream.Pending,
 	}
 	args := []any{
 		a.ID,
-		idemTTL,
-		alertTTL,
+		int(idemTTL.Seconds()),
+		int(alertTTL.Seconds()),
 		"message", a.Message,
 		"severity", string(a.Severity),
 		"status", string(a.Status),

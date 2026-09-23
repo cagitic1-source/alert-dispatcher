@@ -14,8 +14,15 @@ func NewAlertRepository(rdb *goredis.Client) *AlertRepository {
 	return &AlertRepository{rdb: rdb}
 }
 
-const alertTTL = 5 * time.Second
+const (
+	idemTTL  = time.Hour
+	alertTTL = 24 * time.Hour
+)
 
 func alertKey(id string) string {
-	return "alert:" + id
+	return "alert:{" + id + "}"
+}
+
+func alertEventsKey(id string) string {
+	return "alert:{" + id + "}:events"
 }

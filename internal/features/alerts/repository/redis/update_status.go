@@ -15,7 +15,8 @@ var updateStatusScript = redis.NewScript(updateStatusScriptSrc)
 
 func (r *AlertRepository) UpdateStatus(ctx context.Context, id string, status domain.AlertStatus) error {
 	keys := []string{
-		"alert:" + id,
+		alertKey(id),
+		alertEventsKey(id),
 	}
 	args := []any{string(status)}
 	res, err := updateStatusScript.Run(ctx, r.rdb, keys, args...).Int64()
