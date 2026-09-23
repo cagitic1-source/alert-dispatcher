@@ -106,10 +106,11 @@ func startServer(t *testing.T, svc *service.AlertService) alertv1.AlertServiceCl
 	return alertv1.NewAlertServiceClient(conn)
 }
 
+// events == nil: WatchAlert в этих тестах не используется
 // newTestClient — сервис поверх in-memory репозитория, без внешних зависимостей.
 func newTestClient(t *testing.T) alertv1.AlertServiceClient {
 	t.Helper()
-	return startServer(t, service.NewAlertService(newFakeRepo()))
+	return startServer(t, service.NewAlertService(newFakeRepo(), nil))
 }
 
 // newTestClientWithRedis — сервис поверх настоящего Redis.
@@ -126,5 +127,5 @@ func newTestClientWithRedis(t *testing.T) alertv1.AlertServiceClient {
 		rdb.Close()
 	})
 
-	return startServer(t, service.NewAlertService(redis_repo.NewAlertRepository(rdb)))
+	return startServer(t, service.NewAlertService(redis_repo.NewAlertRepository(rdb), nil))
 }

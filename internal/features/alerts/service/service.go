@@ -8,11 +8,13 @@ import (
 
 type AlertService struct {
 	alertRepo AlertRepository
+	events    AlertEvents
 }
 
-func NewAlertService(alertRepo AlertRepository) *AlertService {
+func NewAlertService(alertRepo AlertRepository, events AlertEvents) *AlertService {
 	return &AlertService{
 		alertRepo: alertRepo,
+		events:    events,
 	}
 }
 

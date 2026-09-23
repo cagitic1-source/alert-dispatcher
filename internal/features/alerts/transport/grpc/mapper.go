@@ -1,6 +1,7 @@
 package grpc_handler
 
 import (
+	"context"
 	"errors"
 	"log"
 
@@ -86,11 +87,18 @@ func toProtoStatus(s domain.AlertStatus) alertv1.AlertStatus {
 }
 
 func toGRPCError(err error) error {
+	if err == nil {
+		return nil
+	}
 	switch {
 	case errors.Is(err, domain.ErrAlertNotFound):
 		return status.Error(codes.NotFound, "alert not found")
 	case errors.Is(err, domain.ErrInvalidInput):
 		return status.Error(codes.InvalidArgument, "invalid argument")
+	case errors.Is(err, context.Canceled):
+		return status.Error(codes.Canceled, "canceled")
+	case errors.Is(err, context.DeadlineExceeded):
+		return status.Error(codes.DeadlineExceeded, "watch timeout")
 	default:
 		log.Printf("internal error :%v", err)
 		return status.Error(codes.Internal, "service temporarily unavailable")

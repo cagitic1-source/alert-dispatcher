@@ -7,8 +7,8 @@ const (
 	StatusProcessing  AlertStatus = "processing"
 	StatusDelivered   AlertStatus = "delivered"
 	StatusFailed      AlertStatus = "failed"
-	StatusCanceled    AlertStatus = "Canceled"
-	StatusUnspecified AlertStatus = "Unspecified"
+	StatusCanceled    AlertStatus = "canceled"
+	StatusUnspecified AlertStatus = "unspecified"
 )
 
 type AlertSeverity string
@@ -27,4 +27,13 @@ type Alert struct {
 	Status    AlertStatus
 	Attempts  int32
 	CreatedAt int64
+}
+
+func IsTerminal(status AlertStatus) bool {
+	switch status {
+	case StatusDelivered, StatusFailed, StatusCanceled:
+		return true
+	default:
+		return false
+	}
 }

@@ -32,7 +32,7 @@ func main() {
 	rdb := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
 
 	repo := redis_repo.NewAlertRepository(rdb)
-	svc := service.NewAlertService(repo)
+	svc := service.NewAlertService(repo, repo)
 
 	pingCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
