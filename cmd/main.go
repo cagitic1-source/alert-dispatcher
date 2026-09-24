@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net"
 	"os"
@@ -19,6 +18,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
+
+const shutdownTimeout = 10 * time.Second
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -45,22 +46,54 @@ func main() {
 		log.Fatalf("ensure group: %v", err)
 	}
 
+	workerDone := make(chan struct{})
 	go func() {
-		if err := w.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			log.Printf("worker stopped: %v", err)
-		}
+		defer close(workerDone)
+		// if err := w.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+		// 	log.Printf("worker stopped: %v", err)
+		// }
 	}()
 
-	handler := grpc_handler.NewAlertHandler(svc)
+	handler := grpc_handler.NewAlertHandler(svc, ctx)
 
 	srv := grpc.NewServer()
 	alertv1.RegisterAlertServiceServer(srv, handler)
 
 	reflection.Register(srv)
 
+	// Serve блокирует, поэтому уводим в горутину.
+	serveErr := make(chan error, 1)
+	go func() {
+		serveErr <- srv.Serve(lis)
+	}()
+
 	log.Println("gRPC server listening on :50051")
-	if err := srv.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+
+	select {
+	case err := <-serveErr:
+		log.Fatalf("serve: %v", err)
+	case <-ctx.Done():
+		log.Println("shutdown signal received")
+	}
+
+	done := make(chan struct{})
+	go func() {
+		srv.GracefulStop()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		log.Println("graceful shutdown complete")
+	case <-time.After(shutdownTimeout):
+		log.Println("shutdown timed out, forcing stop")
+		srv.Stop()
+	}
+
+	<-workerDone
+
+	if err := rdb.Close(); err != nil {
+		log.Printf("redis close: %v", err)
 	}
 
 }

@@ -9,7 +9,7 @@ gen:
 		api/proto/alert/v1/alert.proto
 
 run:
-	go run ./cmd
+	-go run ./cmd
 
 db-up:
 	docker compose up -d

@@ -77,7 +77,7 @@ func (r *fakeRepo) UpdateStatus(ctx context.Context, id string, status domain.Al
 func startServer(t *testing.T, svc *service.AlertService) alertv1.AlertServiceClient {
 	t.Helper()
 
-	handler := grpc_handler.NewAlertHandler(svc)
+	handler := grpc_handler.NewAlertHandler(svc, context.Background())
 
 	lis := bufconn.Listen(1024 * 1024)
 	srv := grpc.NewServer()
