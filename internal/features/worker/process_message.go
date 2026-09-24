@@ -35,6 +35,14 @@ func (w *Worker) processMessage(ctx context.Context, msg redis.XMessage) error {
 		return fmt.Errorf("get alert: %w", err)
 	}
 
+	if domain.IsTerminal(alert.Status) {
+		log.Printf("alert %s already %s, acking", alertID, alert.Status)
+		if err := w.rdb.XAck(ctx, w.stream, w.group, msg.ID); err != nil {
+			return fmt.Errorf("xack: %w", err)
+		}
+		return nil
+	}
+
 	deliverCtx, cancel := context.WithTimeout(ctx, deliverTimeout)
 	deliverErr := w.deliver(deliverCtx, alert)
 	cancel()

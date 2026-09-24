@@ -17,6 +17,7 @@ const (
 	SeverityLow         AlertSeverity = "low"
 	SeverityMedium      AlertSeverity = "medium"
 	SeverityHigh        AlertSeverity = "high"
+	SeverityCritical    AlertSeverity = "critical"
 	SeverityUnspecified AlertSeverity = "unspecified"
 )
 
@@ -32,6 +33,15 @@ type Alert struct {
 func IsTerminal(status AlertStatus) bool {
 	switch status {
 	case StatusDelivered, StatusFailed, StatusCanceled:
+		return true
+	default:
+		return false
+	}
+}
+
+func (s AlertSeverity) IsValid() bool {
+	switch s {
+	case SeverityLow, SeverityMedium, SeverityHigh, SeverityCritical:
 		return true
 	default:
 		return false

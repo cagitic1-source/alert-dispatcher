@@ -19,6 +19,10 @@ func (s *AlertService) CreateAlert(ctx context.Context, msg string, severity dom
 		return domain.Alert{}, domain.ErrInvalidInput
 	}
 
+	if !severity.IsValid() {
+		return domain.Alert{}, domain.ErrInvalidInput
+	}
+
 	alert := domain.Alert{
 		ID:        uuid.NewString(),
 		Message:   msg,

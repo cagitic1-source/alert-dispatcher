@@ -30,7 +30,8 @@ func toDomainSeverity(s alertv1.AlertSeverity) domain.AlertSeverity {
 		return domain.SeverityLow
 	case alertv1.AlertSeverity_ALERT_SEVERITY_MEDIUM:
 		return domain.SeverityMedium
-
+	case alertv1.AlertSeverity_ALERT_SEVERITY_CRITICAL:
+		return domain.SeverityCritical
 	default:
 		return domain.SeverityUnspecified
 	}
@@ -62,7 +63,8 @@ func toProtoSeverity(s domain.AlertSeverity) alertv1.AlertSeverity {
 		return alertv1.AlertSeverity_ALERT_SEVERITY_LOW
 	case domain.SeverityMedium:
 		return alertv1.AlertSeverity_ALERT_SEVERITY_MEDIUM
-
+	case domain.SeverityCritical:
+		return alertv1.AlertSeverity_ALERT_SEVERITY_CRITICAL
 	default:
 		return alertv1.AlertSeverity_ALERT_SEVERITY_UNSPECIFIED
 	}
