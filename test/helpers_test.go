@@ -113,6 +113,24 @@ func newTestClient(t *testing.T) alertv1.AlertServiceClient {
 	return startServer(t, service.NewAlertService(newFakeRepo(), nil))
 }
 
+// newTestClientAndRepo — как newTestClientWithRedis, но отдаёт ещё и
+// репозиторий: тестам WatchAlert нужно менять статус в обход gRPC API.
+func newTestClientAndRepo(t *testing.T) (alertv1.AlertServiceClient, *redis_repo.AlertRepository) {
+	t.Helper()
+
+	rdb := goredis.NewClient(&goredis.Options{Addr: "localhost:6379", DB: testRedisDB})
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		t.Skipf("redis unavailable: %v", err)
+	}
+	t.Cleanup(func() {
+		rdb.FlushDB(context.Background())
+		rdb.Close()
+	})
+
+	repo := redis_repo.NewAlertRepository(rdb)
+	return startServer(t, service.NewAlertService(repo, repo)), repo
+}
+
 // newTestClientWithRedis — сервис поверх настоящего Redis.
 // Пропускает тест, если Redis недоступен.
 func newTestClientWithRedis(t *testing.T) alertv1.AlertServiceClient {
