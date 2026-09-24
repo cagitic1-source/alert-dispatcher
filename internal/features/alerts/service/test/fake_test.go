@@ -14,20 +14,31 @@ var (
 )
 
 type fakeRepo struct {
+	log    *callLog
 	alerts []domain.Alert
 	err    error // что вернёт GetAlert
 	calls  int   // сколько раз звали GetAlert
 }
 
 type fakeEvents struct {
+	log *callLog
 	sub *fakeSub
 	err error // ошибка подписки
 }
 
 type fakeSub struct {
+	log    *callLog
 	events []string // stub: что выдавать по одному
 	i      int
 	closed bool // spy: был ли Close
+}
+
+type callLog struct {
+	calls []string
+}
+
+func (l *callLog) add(name string) {
+	l.calls = append(l.calls, name)
 }
 
 func (s *fakeSub) Next(ctx context.Context) (string, error) {
@@ -46,6 +57,9 @@ func (s *fakeSub) Close() error {
 }
 
 func (e *fakeEvents) Subscribe(ctx context.Context, alertID string) (service.Subscription, error) {
+	if e.log != nil {
+		e.log.add("Subscribe")
+	}
 	if e.err != nil {
 		return nil, e.err
 	}
@@ -53,6 +67,10 @@ func (e *fakeEvents) Subscribe(ctx context.Context, alertID string) (service.Sub
 }
 
 func (r *fakeRepo) GetAlert(ctx context.Context, id string) (domain.Alert, error) {
+	if r.log != nil {
+		r.log.add("GetAlert")
+	}
+
 	r.calls++
 	if r.err != nil {
 		return domain.Alert{}, r.err
