@@ -12,6 +12,9 @@ func (s *AlertService) WatchAlert(
 	id string,
 	send func(domain.Alert) error,
 ) error {
+	ctx, cancel := context.WithTimeout(ctx, watchTimeout)
+	defer cancel()
+
 	sub, err := s.events.Subscribe(ctx, id)
 	if err != nil {
 		return fmt.Errorf("subscribe: %w", err)

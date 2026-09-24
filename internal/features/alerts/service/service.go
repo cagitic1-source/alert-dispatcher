@@ -2,9 +2,12 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/cagitic1-source/alert-dispatcher/internal/domain"
 )
+
+const watchTimeout = 10 * time.Minute
 
 type AlertService struct {
 	alertRepo AlertRepository
