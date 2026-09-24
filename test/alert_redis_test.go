@@ -6,7 +6,14 @@ import (
 	"testing"
 
 	alertv1 "github.com/cagitic1-source/alert-dispatcher/gen/alert/v1"
+	"go.uber.org/goleak"
 )
+
+func TestMain(m *testing.M) {
+	goleak.VerifyTestMain(m,
+		goleak.IgnoreTopFunction("github.com/redis/go-redis/v9/maintnotifications.(*CircuitBreakerManager).cleanupLoop"),
+	)
+}
 
 func TestCreateAlert_Idempotent_Concurrent(t *testing.T) {
 	client := newTestClientWithRedis(t)
