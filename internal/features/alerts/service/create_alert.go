@@ -15,9 +15,6 @@ func (s *AlertService) CreateAlert(ctx context.Context, msg string, severity dom
 	if idemKey == "" {
 		return domain.Alert{}, domain.ErrInvalidInput
 	}
-	if severity == "" {
-		return domain.Alert{}, domain.ErrInvalidInput
-	}
 
 	if !severity.IsValid() {
 		return domain.Alert{}, domain.ErrInvalidInput
