@@ -1,6 +1,6 @@
 MODULE := github.com/cagitic1-source/alert-dispatcher
 
-.PHONY: gen run test
+.PHONY: gen run db-up db-down test
 
 gen:
 	protoc \

@@ -27,7 +27,6 @@ type fakeEvents struct {
 }
 
 type fakeSub struct {
-	log    *callLog
 	events []string // stub: что выдавать по одному
 	i      int
 	closed bool // spy: был ли Close

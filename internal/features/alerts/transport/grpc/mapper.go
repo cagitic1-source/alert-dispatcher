@@ -37,24 +37,6 @@ func toDomainSeverity(s alertv1.AlertSeverity) domain.AlertSeverity {
 	}
 }
 
-func toDomainStatus(s alertv1.AlertStatus) domain.AlertStatus {
-	switch s {
-	case alertv1.AlertStatus_ALERT_STATUS_CANCELLED:
-		return domain.StatusCanceled
-	case alertv1.AlertStatus_ALERT_STATUS_FAILED:
-		return domain.StatusFailed
-	case alertv1.AlertStatus_ALERT_STATUS_DELIVERED:
-		return domain.StatusDelivered
-	case alertv1.AlertStatus_ALERT_STATUS_PROCESSING:
-		return domain.StatusProcessing
-	case alertv1.AlertStatus_ALERT_STATUS_PENDING:
-		return domain.StatusPending
-
-	default:
-		return domain.StatusUnspecified
-	}
-}
-
 func toProtoSeverity(s domain.AlertSeverity) alertv1.AlertSeverity {
 	switch s {
 	case domain.SeverityHigh:

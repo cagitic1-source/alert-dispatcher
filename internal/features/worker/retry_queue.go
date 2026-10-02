@@ -25,11 +25,12 @@ func (q *retryQueue) ScheduleRetry(ctx context.Context, alertID string, at time.
 }
 
 func (q *retryQueue) DueRetries(ctx context.Context, now time.Time, limit int64) ([]string, error) {
-	return q.rdb.ZRangeByScore(ctx, alertstream.Retry, &redis.ZRangeBy{
-		Min:    "-inf",
-		Max:    strconv.FormatInt(now.UnixMilli(), 10),
-		Offset: 0,
-		Count:  limit,
+	return q.rdb.ZRangeArgs(ctx, redis.ZRangeArgs{
+		Key:     alertstream.Retry,
+		Start:   "-inf",
+		Stop:    strconv.FormatInt(now.UnixMilli(), 10),
+		ByScore: true,
+		Count:   limit,
 	}).Result()
 }
 
