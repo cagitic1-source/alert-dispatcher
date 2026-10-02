@@ -1,0 +1,35 @@
+# Бинарники: собирать через go build -o bin/... ./cmd
+/bin/
+/alert-dispatcher
+*.exe
+*.test
+
+# Покрытие и профили
+*.out
+coverage.html
+*.prof
+
+# Локальный Go workspace
+go.work
+go.work.sum
+
+# Переменные окружения и секреты
+.env
+.env.*
+!.env.example
+
+# Данные Redis, если запускать redis-server из каталога проекта
+dump.rdb
+appendonly.aof
+appendonlydir/
+
+# IDE и ОС
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Личные настройки Claude Code
+.claude/settings.local.json
+CLAUDE.local.md
