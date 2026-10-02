@@ -3,6 +3,8 @@ package worker
 import (
 	"context"
 	"errors"
+	"log"
+	"strings"
 	"time"
 
 	"github.com/cagitic1-source/alert-dispatcher/internal/alertstream"
@@ -22,6 +24,8 @@ type Worker struct {
 }
 
 const (
+	runBackoffMin     = time.Second
+	runBackoffMax     = 30 * time.Second
 	retryScanInterval = 5 * time.Second
 	retryBatchSize    = 10
 	baseRetryDelay    = 30 * time.Second
@@ -110,4 +114,50 @@ func (a *redisAdapter) XTrim(ctx context.Context, stream, minID string) error {
 func (a *redisAdapter) XAutoClaim(ctx context.Context, args *redis.XAutoClaimArgs) ([]redis.XMessage, error) {
 	messages, _, err := a.rdb.XAutoClaim(ctx, args).Result()
 	return messages, err
+}
+
+// sleepCtx спит d или до отмены ctx. Возвращает false, если ctx отменён.
+func sleepCtx(ctx context.Context, d time.Duration) bool {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-t.C:
+		return true
+	}
+}
+
+// retryBackoff даёт растущую паузу между попытками после сбоя Redis.
+type retryBackoff struct {
+	current time.Duration
+}
+
+func (b *retryBackoff) next() time.Duration {
+	if b.current == 0 {
+		b.current = runBackoffMin
+	} else {
+		b.current *= 2
+		if b.current > runBackoffMax {
+			b.current = runBackoffMax
+		}
+	}
+	return b.current
+}
+
+func (b *retryBackoff) reset() {
+	b.current = 0
+}
+
+// handleRunError разбирает ошибку Redis: пересоздаёт consumer group,
+// если она пропала, иначе просто логирует.
+func (w *Worker) handleRunError(ctx context.Context, op string, err error) {
+	if strings.Contains(err.Error(), "NOGROUP") {
+		log.Printf("%s: consumer group missing, recreating", op)
+		if err := w.EnsureGroup(ctx); err != nil {
+			log.Printf("ensure group: %v", err)
+		}
+		return
+	}
+	log.Printf("%s: %v", op, err)
 }

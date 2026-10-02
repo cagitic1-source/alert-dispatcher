@@ -2,7 +2,6 @@ package worker
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -14,6 +13,8 @@ func (w *Worker) Run(ctx context.Context) error {
 	lastTrim := time.Now()
 	lastRetryScan := time.Now()
 
+	var backoff retryBackoff
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -21,7 +22,14 @@ func (w *Worker) Run(ctx context.Context) error {
 		default:
 			if time.Since(lastClaim) >= claimInterval {
 				if err := w.claimStale(ctx); err != nil {
-					return err
+					if ctx.Err() != nil {
+						return ctx.Err()
+					}
+					w.handleRunError(ctx, "claim stale", err)
+					if !sleepCtx(ctx, backoff.next()) {
+						return ctx.Err()
+					}
+					continue
 				}
 				lastClaim = time.Now()
 			}
@@ -46,8 +54,16 @@ func (w *Worker) Run(ctx context.Context) error {
 			})
 
 			if err != nil {
-				return fmt.Errorf("xreadgroup: %w", err)
+				if ctx.Err() != nil {
+					return ctx.Err()
+				}
+				w.handleRunError(ctx, "xreadgroup", err)
+				if !sleepCtx(ctx, backoff.next()) {
+					return ctx.Err()
+				}
+				continue
 			}
+			backoff.reset()
 
 			for _, stream := range results {
 				for _, msg := range stream.Messages {
