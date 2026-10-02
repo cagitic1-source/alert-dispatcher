@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net"
 	"os"
@@ -49,9 +50,9 @@ func main() {
 	workerDone := make(chan struct{})
 	go func() {
 		defer close(workerDone)
-		// if err := w.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-		// 	log.Printf("worker stopped: %v", err)
-		// }
+		if err := w.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.Printf("worker stopped: %v", err)
+		}
 	}()
 
 	handler := grpc_handler.NewAlertHandler(svc, ctx)
